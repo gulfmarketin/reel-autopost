@@ -1,0 +1,70 @@
+name: Autopost reel
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # every 3 hours (UTC). GitHub may start a few minutes late.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Render only, don't post"
+        type: boolean
+        default: false
+
+concurrency:
+  group: autopost
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  post:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ffmpeg and fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-inter fonts-liberation
+          mkdir -p ~/.local/share/fonts
+          curl -sSL -o ~/.local/share/fonts/Lora.ttf "https://github.com/google/fonts/raw/main/ofl/lora/Lora%5Bwght%5D.ttf"
+          curl -sSL -o ~/.local/share/fonts/Lora-Italic.ttf "https://github.com/google/fonts/raw/main/ofl/lora/Lora-Italic%5Bwght%5D.ttf"
+          fc-cache -f
+
+      - name: Install Python packages and Chromium
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Render and post
+        env:
+          SHEET_CSV_URL: ${{ vars.SHEET_CSV_URL }}
+          HANDLE: ${{ vars.HANDLE }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: python scripts/autopost.py
+
+      - name: Keep the rendered video for 7 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reel
+          path: out/*.mp4
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Save posted list
+        if: always()
+        run: |
+          git config user.name "autopost-bot"
+          git config user.email "autopost-bot@users.noreply.github.com"
+          git add state/posted.json
+          git diff --cached --quiet || (git commit -m "Posted reel" && git push)
