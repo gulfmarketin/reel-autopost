@@ -1,0 +1,163 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#12060a}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+/* 40-second scene template. setup(config) -> {total, events}; render(t) draws a frame.
+   config.scenes = [{d, text:[lines], ty, small, smallY, cite, v:{type,...}}], config.keyword */
+const C = document.getElementById('c'), X = C.getContext('2d');
+const W = 1080, H = 1920;
+const GOLD = '#e9bd72', PINK = '#f3cfd6', RED = '#e0506a', COL = {g: GOLD, p: PINK, r: RED};
+const SERIF = 'Lora, "Liberation Serif", serif', SANS = 'Inter, sans-serif';
+const clamp = (v, a=0, b=1) => Math.max(a, Math.min(b, v));
+const ease = x => { x = clamp(x); return x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x+2, 3)/2; };
+const lerp = (a, b, t) => a + (b - a) * t;
+function glow(c, b) { X.shadowColor = c; X.shadowBlur = b; }
+let seed = 7, STARS = [], CFG = null, SC = [];
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+function bg(t) {
+  const g = X.createRadialGradient(W/2, H*0.45, 50, W/2, H*0.45, H*0.8);
+  g.addColorStop(0, '#3a1220'); g.addColorStop(0.55, '#1e0910'); g.addColorStop(1, '#0d0407');
+  X.fillStyle = g; X.fillRect(0, 0, W, H);
+  for (const s of STARS) { X.globalAlpha = 0.2 + 0.35*(0.5 + 0.5*Math.sin(t*s.sp + s.ph));
+    let y = (s.y - t*6) % H; if (y < 0) y += H; X.fillStyle = '#f6dfe4'; X.beginPath(); X.arc(s.x, y, s.r, 0, 7); X.fill(); }
+  X.globalAlpha = 1;
+}
+// line = "plain" or "plain *gold* ~red~"
+function segs(line) { const out = []; line.split(/(\*[^*]+\*|~[^~]+~)/).forEach(p => { if (!p) return;
+  if (p[0] === '*') out.push([p.slice(1, -1), GOLD]); else if (p[0] === '~') out.push([p.slice(1, -1), RED]); else out.push([p, PINK]); }); return out; }
+function text(lines, y, a, size=60) {
+  X.save(); X.globalAlpha *= a; X.textBaseline = 'middle'; X.font = `500 ${size}px ${SERIF}`;
+  lines.forEach((line, i) => { const sg = segs(line); const tw = sg.reduce((w, [s]) => w + X.measureText(s).width, 0);
+    let x = W/2 - tw/2; for (const [s, c] of sg) { glow(c, c === PINK ? 14 : 26); X.fillStyle = c; X.fillText(s, x, y + i*size*1.32); x += X.measureText(s).width; } });
+  X.restore();
+}
+function small(s, x, y, a, c=PINK, size=32, italic=true, sp=0) { X.save(); X.globalAlpha *= a; X.textAlign = 'center'; X.textBaseline = 'middle';
+  X.font = italic ? `italic 400 ${size}px ${SERIF}` : `600 ${size}px ${SANS}`; if (sp) X.letterSpacing = sp + 'px'; glow(c, 10); X.fillStyle = c; X.fillText(s, x, y); X.restore(); }
+function dot(x, y, r, c, a=1) { r = Math.max(.1, r); X.save(); X.globalAlpha *= a; glow(c, 30); X.fillStyle = c; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill(); X.restore(); }
+function orb(x, y, r, c, a=1, label) { r = Math.max(.1, r); X.save(); X.globalAlpha *= a; const g = X.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, '#fff'); g.addColorStop(.25, c); g.addColorStop(1, c + '00'); glow(c, 50); X.fillStyle = g; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill(); X.restore();
+  if (label) small(label, x, y + r + 40, a, c, 36); }
+function ring(x, y, r, c, a=1, lw=3) { r = Math.max(.1, r); X.save(); X.globalAlpha *= a; glow(c, 26); X.strokeStyle = c; X.lineWidth = lw; X.beginPath(); X.arc(x, y, r, 0, 7); X.stroke(); X.restore(); }
+function stroke(c, lw, a, fn) { X.save(); X.globalAlpha *= a; glow(c, 22); X.strokeStyle = c; X.lineWidth = lw; X.lineCap = 'round'; X.lineJoin = 'round'; X.beginPath(); fn(); X.stroke(); X.restore(); }
+function bar(label, from, to, s, a, y, c1, c2, delay=0.6, dur=3) {
+  const x0 = 190, w = 700, h = 46, v = lerp(from, to, ease((s - delay) / dur));
+  stroke(PINK, 2, a*0.5, () => X.roundRect(x0, y, w, h, 23));
+  const g = X.createLinearGradient(x0, 0, x0 + w, 0); g.addColorStop(0, c1); g.addColorStop(1, c2);
+  X.save(); X.globalAlpha = a; glow(c2, 30); X.fillStyle = g; X.beginPath(); X.roundRect(x0 + 6, y + 6, Math.max(20, (w - 12)*v), h - 12, 17); X.fill(); X.restore();
+  small(label + '  ' + Math.round(v*100) + '%', W/2, y + 100, a, c2, 26, false, 6);
+}
+
+/* ---- visual library ---- */
+const V = {
+  timer(v, s, a) { const cx = W/2, cy = 1260, R = 230, p = ease((s - .4) / 4.6);
+    ring(cx, cy, R, PINK, a*.25); stroke(GOLD, 8, a, () => X.arc(cx, cy, R, -Math.PI/2, -Math.PI/2 + Math.PI*2*(1 - p)));
+    const secs = Math.round(v.secs * (1 - p)); X.save(); X.globalAlpha = a; X.textAlign = 'center'; X.textBaseline = 'middle'; X.font = `600 110px ${SERIF}`;
+    glow(GOLD, 30); X.fillStyle = GOLD; X.fillText(`${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`, cx, cy); X.restore(); },
+  bigText(v, s, a) { const k = ease((s - .3) / .8), cy = 1260; ring(W/2, cy, 210, GOLD, a*k*.7, 4); ring(W/2, cy, 210 + 40*Math.sin(s*2.5), PINK, a*.25);
+    X.save(); X.globalAlpha = a*k; X.textAlign = 'center'; X.textBaseline = 'middle'; X.font = `700 ${v.size || 170}px ${SERIF}`; glow(GOLD, 40); X.fillStyle = GOLD;
+    X.fillText(v.text, W/2, cy + 8); X.restore(); },
+  apart(v, s, a) { const y = 1260, gap = lerp(90, 330, ease((s - .6) / 3)), dim = 1 - .55*ease((s - 1) / 3);
+    orb(W/2 - gap, y, 100, GOLD, a*dim, v.l1); orb(W/2 + gap, y, 100, PINK, a*dim, v.l2);
+    X.save(); X.globalAlpha = a*(.5 + .3*Math.sin(s*9))*(1 - ease((s - 1.5) / 2)); X.strokeStyle = RED; X.lineWidth = 2; X.setLineDash([4, 16]);
+    X.beginPath(); X.moveTo(W/2 - gap + 110, y); X.lineTo(W/2 + gap - 110, y); X.stroke(); X.restore(); },
+  merge(v, s, a) { const y = v.y || 1220, gap = lerp(260, 55, ease((s - .2) / 2.2)), core = ease((s - 1.4) / 1.4);
+    X.save(); X.globalAlpha = a*core; const g = X.createRadialGradient(W/2, y, 0, W/2, y, 270); g.addColorStop(0, GOLD + '90'); g.addColorStop(1, GOLD + '00');
+    X.fillStyle = g; X.beginPath(); X.arc(W/2, y, 270, 0, 7); X.fill(); X.restore();
+    orb(W/2 - gap, y, 125, GOLD, a); orb(W/2 + gap, y, 125, PINK, a);
+    const pr = ease((s - 2.4) / 1.8); if (pr > 0) ring(W/2, y, 190 + 220*pr, GOLD, a*(1 - pr)*.8);
+    if (v.bar) bar(v.bar, .25, 1, s, a, 1500, PINK, GOLD); },
+  flow(v, s, a) { const y = 1240, L = W/2 - 290, R = W/2 + 290; orb(L, y, 85, GOLD, a, v.l1); orb(R, y, 85, PINK, a, v.l2);
+    for (let i = 0; i < 6; i++) { const ph = (s*.55 + i/6) % 1, d = i % 2, x = d ? lerp(L + 100, R - 100, ph) : lerp(R - 100, L + 100, ph);
+      dot(x, y + Math.sin(ph*Math.PI)*(d ? -40 : 40), 8, d ? GOLD : PINK, a*Math.sin(ph*Math.PI)); }
+    if (v.label) small(v.label, W/2, y + 230, a*ease((s - 1) / .8), GOLD, 34); },
+  list(v, s, a) { const x = 200, y0 = v.y0 || 820, gap = v.gap || 190, n = v.items.length;
+    stroke(GOLD, 3, a, () => { X.moveTo(x, y0); X.lineTo(x, lerp(y0, y0 + gap*(n - 1), ease(s / 2.2))); });
+    v.items.forEach((t, i) => { const k = ease((s - .6 - i*.9) / .5); if (k <= 0) return; const y = y0 + i*gap;
+      if (v.x) { stroke(RED, 6, a*k, () => { X.moveTo(x - 20, y - 20); X.lineTo(x + 20, y + 20); X.moveTo(x + 20, y - 20); X.lineTo(x - 20, y + 20); }); }
+      else { dot(x, y, 14*k, GOLD, a); ring(x, y, 34*k, PINK, a*.5); }
+      X.save(); X.globalAlpha = a*k; X.textAlign = 'left'; X.textBaseline = 'middle'; X.font = `500 52px ${SERIF}`; glow(PINK, 12); X.fillStyle = PINK;
+      X.fillText(t, x + 70 + (1 - k)*30, y); X.restore(); }); },
+  twoBars(v, s, a) { bar(v.l1, .2, .95, s, a, 1080, GOLD, GOLD, .4, 1.2); bar(v.l2, .15, .95, s, a, 1330, PINK, GOLD, .9, 3.2); },
+  drain(v, s, a) { bar(v.label, .78, .12, s, a, 1200, RED, GOLD); },
+  arc(v, s, a) { const cx = W/2, cy = 1380, R = 340, p = ease((s - .4) / 3.8);
+    stroke(PINK, 2, a*.35, () => { X.setLineDash([6, 14]); X.arc(cx, cy, R, Math.PI, 0); }); stroke(GOLD, 5, a, () => X.arc(cx, cy, R, Math.PI, Math.PI + Math.PI*p));
+    const ang = Math.PI + Math.PI*p; dot(cx + R*Math.cos(ang), cy + R*Math.sin(ang), 16, p < .7 ? GOLD : PINK, a);
+    stroke(PINK, 2, a*.4, () => { X.moveTo(cx - R - 60, cy); X.lineTo(cx + R + 60, cy); });
+    small(v.l1, cx - R, cy + 50, a, GOLD, 22, false, 5); small(v.l2, cx + R, cy + 50, a, PINK, 22, false, 5); },
+  line(v, s, a) { const y = 1260, x0 = 150, x1 = 930, mx = 560, xe = lerp(x0, x1, ease((s - .4) / 3.8));
+    stroke(GOLD, 5, a, () => { X.moveTo(x0, y); X.lineTo(xe, y); }); stroke(PINK, 2, a*.6, () => { X.moveTo(mx, y - 60); X.lineTo(mx, y + 60); });
+    small(v.mark, mx, y + 100, a, PINK, 32); dot(xe, y, 16, GOLD, a); small(v.label, (mx + x1)/2 + 40, y - 90, a*ease((s - 2.4) / .8), GOLD, 34); },
+  messenger(v, s, a) { const y = 1260, L = W/2 - 300, R = W/2 + 300; orb(L, y, 90, GOLD, a, 'him'); orb(R, y, 90, PINK, a, 'her');
+    const p = ((s - .8) % 2.4) / 2.4; if (s > .8) { const x = lerp(L + 90, R - 90, ease(p)), yy = y - 140*Math.sin(p*Math.PI);
+      X.save(); X.globalAlpha = a*Math.sin(p*Math.PI); X.translate(x, yy); glow(GOLD, 26); X.strokeStyle = GOLD; X.lineWidth = 4; X.lineJoin = 'round';
+      X.strokeRect(-46, -30, 92, 60); X.beginPath(); X.moveTo(-46, -30); X.lineTo(0, 6); X.lineTo(46, -30); X.stroke(); X.restore(); }
+    if (v.label) small(v.label, W/2, y + 230, a*ease((s - 1.5) / .8), GOLD, 34); },
+  chore(v, s, a) { const x0 = 300, y0 = 1060; for (let i = 0; i < 4; i++) { const y = y0 + i*120, k = ease((s - .5 - i*.6) / .3);
+      stroke(PINK, 3, a*.6, () => X.roundRect(x0, y - 30, 60, 60, 10)); if (k > 0) stroke(RED, 6, a*k, () => { X.moveTo(x0 + 12, y); X.lineTo(x0 + 26, y + 16); X.lineTo(x0 + 50, y - 18); });
+      stroke(PINK, 3, a*.35, () => { X.moveTo(x0 + 100, y); X.lineTo(x0 + 480, y); }); }
+    small(v.label || 'routine', W/2, y0 + 520, a*ease((s - 2.4) / .8), RED, 34); },
+  lock(v, s, a) { const cx = W/2, cy = 1300, open = ease((s - 1.6) / 1); stroke(GOLD, 6, a, () => X.roundRect(cx - 130, cy - 40, 260, 210, 26));
+    stroke(GOLD, 6, a, () => { X.moveTo(cx - 80, cy - 40); X.lineTo(cx - 80, cy - 130 - 40*open); X.arc(cx, cy - 130 - 40*open, 80, Math.PI, 0); X.lineTo(cx + 80, cy - 130 - 40*open + (open > .5 ? 0 : 90)); });
+    dot(cx, cy + 50, 16, PINK, a); if (open > 0) ring(cx, cy + 60, 160 + 200*open, GOLD, a*(1 - open)); },
+  questions(v, s, a) { const y = 1260; orb(W/2 - 220, y, 95, GOLD, a*(.6 + .3*Math.sin(s*6)), 'him'); orb(W/2 + 220, y, 95, PINK, a*(.6 + .3*Math.cos(s*5)), 'her');
+    for (let i = 0; i < 5; i++) { const q = ((s*.35 + i/5) % 1); X.save(); X.globalAlpha = a*Math.sin(q*Math.PI)*.8; X.font = `italic 600 ${54 + i*6}px ${SERIF}`;
+      X.textAlign = 'center'; glow(PINK, 16); X.fillStyle = i % 2 ? PINK : GOLD; X.fillText('?', W/2 + (i - 2)*120, y - 120 - q*260); X.restore(); } },
+  check(v, s, a) { const cx = W/2, cy = 1300, k = ease((s - .4) / 1.2); ring(cx, cy, 200, GOLD, a*k, 5); ring(cx, cy, 200 + 50*Math.sin(s*2), PINK, a*.25);
+    const p = ease((s - 1) / 1); stroke(GOLD, 12, a, () => { X.moveTo(cx - 90, cy); X.lineTo(cx - 90 + 60*Math.min(1, p*2), cy + 60*Math.min(1, p*2));
+      if (p > .5) X.lineTo(cx - 30 + 140*(p - .5)*2, cy + 60 - 150*(p - .5)*2); });
+    if (v.label) small(v.label, cx, cy + 300, a*ease((s - 1.8) / .8), GOLD, 36); },
+  outward(v, s, a) { const cx = W/2, cy = 1260; orb(cx, cy, 90, GOLD, a);
+    for (let i = 0; i < 10; i++) { const ang = i/10*Math.PI*2, q = ((s*.5 + i*.13) % 1); dot(cx + Math.cos(ang)*(120 + q*360), cy + Math.sin(ang)*(120 + q*360), 7, i % 2 ? PINK : GOLD, a*(1 - q)); }
+    if (v.label) small(v.label, cx, cy + 420, a*ease((s - 1) / .8), PINK, 34); },
+  dim(v, s, a) { const cx = W/2, cy = 1260, d = 1 - .7*ease((s - .5) / 3); orb(cx, cy, 130, PINK, a*d, v.label);
+    ring(cx, cy, 170, PINK, a*.25*d); },
+  quote(v, s, a) { X.save(); X.globalAlpha = a*ease((s - .2) / .8)*.6; X.font = `700 260px ${SERIF}`; X.textAlign = 'center'; glow(GOLD, 30); X.fillStyle = GOLD;
+    X.fillText('“', W/2, 1150); X.restore(); text(v.lines, 1250, a*ease((s - .6) / .8), 56);
+    small(v.by, W/2, 1250 + v.lines.length*74 + 60, a*ease((s - 1.6) / .8), GOLD, 34); },
+  spark(v, s, a) { V.merge({y: 1240}, s, a); for (let i = 0; i < 16; i++) { const ang = i/16*Math.PI*2 + s*.3, q = ease((s - 1.8) / 1.6);
+      dot(W/2 + Math.cos(ang)*(150 + 330*q), 1240 + Math.sin(ang)*(150 + 330*q), 6 + 4*(1 - q), i % 2 ? GOLD : PINK, a*(1 - q*.7)*(q > 0 ? 1 : 0)); } },
+  hadith(v, s, a) { const m = ease((s - .8) / 2.2), cy = 1260; dot(lerp(W/2 - 320, W/2 - 14, m), cy, 16, GOLD, a); dot(lerp(W/2 + 320, W/2 + 14, m), cy, 16, PINK, a);
+    if (m > .98) { const q = ease((s - 3) / 2); ring(W/2, cy, 40 + 240*q, GOLD, a*(1 - q)); orb(W/2, cy, 120*ease((s - 3) / .8), GOLD, a*.7); } },
+  cta(v, s, a) { const k = ease(s / 1.2), cx = W/2, cy = 680;
+    X.save(); X.globalAlpha = a*k; glow(GOLD, 28); X.strokeStyle = GOLD; X.lineWidth = 4; X.lineJoin = 'round'; X.translate(cx, cy); X.scale(.9 + .1*k, .9 + .1*k);
+    X.beginPath(); X.moveTo(0, -110); X.quadraticCurveTo(-90, -150, -190, -120); X.lineTo(-190, 120); X.quadraticCurveTo(-90, 90, 0, 130);
+    X.quadraticCurveTo(90, 90, 190, 120); X.lineTo(190, -120); X.quadraticCurveTo(90, -150, 0, -110); X.lineTo(0, 130); X.stroke();
+    X.globalAlpha *= .5; X.lineWidth = 2; for (let i = 0; i < 4; i++) { X.beginPath(); X.moveTo(-160, -70 + i*45); X.lineTo(-30, -60 + i*45); X.moveTo(30, -60 + i*45); X.lineTo(160, -70 + i*45); X.stroke(); }
+    X.restore(); small(v.guide, cx, cy + 210, a*k, GOLD, 24, false, 6);
+    const bk = ease((s - .7) / .7), by = 1170, bw = 640, bh = 150, pul = 1 + .03*Math.sin(s*4);
+    X.save(); X.globalAlpha = a*bk; X.translate(cx, by); X.scale(pul, pul); glow(GOLD, 45); X.strokeStyle = GOLD; X.lineWidth = 4; X.fillStyle = GOLD + '22';
+    X.beginPath(); X.roundRect(-bw/2, -bh/2, bw, bh, bh/2); X.fill(); X.stroke(); X.textAlign = 'center'; X.textBaseline = 'middle';
+    X.fillStyle = PINK; X.font = `italic 500 54px ${SERIF}`; X.fillText('Comment', -110, 2); X.fillStyle = GOLD; X.font = `700 68px ${SANS}`; X.letterSpacing = '6px';
+    X.fillText(CFG.keyword, 140, 2); X.restore();
+    const ay = 1320 + 14*Math.sin(s*5); stroke(GOLD, 4, a*ease((s - 1.3) / .6), () => { X.moveTo(cx, ay); X.lineTo(cx, ay + 70); X.moveTo(cx - 26, ay + 44); X.lineTo(cx, ay + 70); X.lineTo(cx + 26, ay + 44); });
+    text(['and get the complete guide', 'straight to your DMs.'], 1520, a*ease((s - 1.6) / .7), 46); },
+};
+// which sound each visual uses: list items tick, merges pop, etc.
+function sceneEvents(sc, t0) { const v = sc.v, ev = [[t0 === 0 ? 0 : t0 + .3, 'whoosh']];
+  if (v.type === 'list') v.items.forEach((_, i) => ev.push([t0 + .6 + i*.9, 'tick']));
+  if (v.type === 'timer') for (let i = 0; i < 10; i++) ev.push([t0 + .5 + i*.45, 'tick']);
+  if (['drain', 'twoBars'].includes(v.type) || v.bar) for (let i = 0; i < 12; i++) ev.push([t0 + .6 + i*.25, 'tick']);
+  if (['merge', 'spark', 'hadith', 'check', 'lock'].includes(v.type)) ev.push([t0 + (v.type === 'hadith' ? 3 : v.type === 'lock' ? 1.7 : v.type === 'check' ? 1 : 2.2), 'pop']);
+  if (['apart', 'flow', 'messenger', 'questions', 'dim', 'outward', 'bigText'].includes(v.type)) ev.push([t0 + .5, 'pop']);
+  if (v.type === 'chore') for (let i = 0; i < 4; i++) ev.push([t0 + .5 + i*.6, 'tick']);
+  if (v.type === 'cta') ev.push([t0 + .7, 'pop'], [t0 + 1.3, 'tick']);
+  return ev; }
+
+window.setup = function (cfg) {
+  CFG = cfg; seed = 7 + (cfg.seed || 0)*131;
+  STARS = Array.from({length: 140}, () => ({x: rnd()*W, y: rnd()*H, r: rnd()*1.6 + .4, ph: rnd()*6.28, sp: rnd()*1.5 + .5}));
+  let t = 0; const events = []; SC = cfg.scenes.map((sc, i) => { const o = {...sc, start: t, last: i === cfg.scenes.length - 1}; events.push(...sceneEvents(sc, t)); t += sc.d; return o; });
+  window.TOTAL = t; events.sort((a, b) => a[0] - b[0]); return {total: t, events};
+};
+window.render = function (t) {
+  bg(t);
+  for (const sc of SC) { const s = t - sc.start; if (s < 0 || s > sc.d) continue;
+    const a = Math.min(clamp(s / .6), sc.last ? 1 : clamp((sc.d - s) / .5)); X.save();
+    if (sc.text) text(sc.text, sc.ty || 520, a, sc.size || 60);
+    if (sc.small) small(sc.small, W/2, sc.smallY || 740, a*.85, PINK, 28);
+    if (sc.cite) small(sc.cite, W/2, 1620, a*ease((s - 2.2) / .8), GOLD, 32);
+    V[sc.v.type](sc.v, s, a); X.restore(); }
+};
+</script></body></html>

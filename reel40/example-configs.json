@@ -1,0 +1,42 @@
+[
+ {"row":"1","keyword":"PDF","seed":1,"scenes":[
+  {"d":5.5,"text":["Stop treating","*Halal intimacy*","like a ~chore.~"],"v":{"type":"chore","label":"just another task?"}},
+  {"d":6,"text":["The Prophet taught us","not to fall upon our spouse","*without a messenger first.*"],"ty":470,"small":"(peace be upon him)","smallY":800,"v":{"type":"messenger"}},
+  {"d":5,"text":["The messenger?","*Sweet words and kisses.*"],"v":{"type":"flow","l1":"him","l2":"her","label":"the mental build-up"}},
+  {"d":6.5,"text":["*3-step* Halal build-up"],"ty":480,"v":{"type":"list","y0":860,"gap":210,"items":["A whispered compliment","A lingering touch","Dressing up just for them"]}},
+  {"d":5.5,"text":["Intimacy starts","*hours before*","the bedroom."],"v":{"type":"arc","l1":"MORNING","l2":"NIGHT"}},
+  {"d":5.5,"text":["It turns an ordinary night","into an *act of worship.*"],"small":"(Sadaqah)","smallY":700,"v":{"type":"merge","bar":"CONNECTION"}},
+  {"d":6,"v":{"type":"cta","guide":"HALAL INTIMACY GUIDE"}}]},
+ {"row":"2","keyword":"PDF","seed":2,"scenes":[
+  {"d":5.5,"text":["The *#1 mistake*","Muslim husbands make","in bed..."],"v":{"type":"bigText","text":"#1"}},
+  {"d":5,"text":["~Skipping foreplay.~"],"ty":560,"v":{"type":"apart","l1":"him","l2":"her"}},
+  {"d":5.5,"text":["Rushing straight in","is ~discouraged~ in the Sunnah."],"v":{"type":"drain","label":"HER READINESS"}},
+  {"d":7,"text":["Take your *time* with:"],"ty":480,"v":{"type":"list","items":["Deep kissing","Gentle caressing","Playful touch","Sweet words"]}},
+  {"d":5.5,"text":["Until she is","*just as ready as you.*"],"v":{"type":"twoBars","l1":"HIM","l2":"HER"}},
+  {"d":5.5,"text":["True masculinity:","*her pleasure comes first.*"],"v":{"type":"merge"}},
+  {"d":6,"v":{"type":"cta","guide":"HALAL INTIMACY & FOREPLAY GUIDE"}}]},
+ {"row":"3","keyword":"PDF","seed":3,"scenes":[
+  {"d":5.5,"text":["The *truth* nobody tells you","about oral intimacy","in Islam..."],"v":{"type":"lock"}},
+  {"d":5.5,"text":["So many newlyweds feel","~guilty~ or ~confused~","about what is allowed."],"v":{"type":"questions"}},
+  {"d":6.5,"text":["Only *2 things* are forbidden:"],"ty":480,"v":{"type":"list","x":true,"y0":860,"gap":220,"items":["During menstruation","Anal intercourse"]}},
+  {"d":6,"text":["Everything else within Nikah","is *Halal* for you."],"v":{"type":"check","label":"to explore, kiss and enjoy"}},
+  {"d":5.5,"text":["For mutual pleasure","and *closeness.*"],"v":{"type":"flow","l1":"him","l2":"her"}},
+  {"d":5,"text":["Let go of ~cultural shame.~","Embrace the *freedom*","Allah gave you."],"v":{"type":"spark"}},
+  {"d":6,"v":{"type":"cta","guide":"HALAL INTIMACY GUIDE"}}]},
+ {"row":"4","keyword":"PDF","seed":4,"scenes":[
+  {"d":5.5,"text":["What you do in the","*10 minutes AFTER*","intimacy changes everything."],"v":{"type":"timer","secs":600}},
+  {"d":5.5,"text":["Rolling over and","going straight to sleep","~kills~ the connection."],"v":{"type":"apart","l1":"him","l2":"her"}},
+  {"d":5,"text":["Intimacy doesn't end","when the act is *over.*"],"v":{"type":"line","mark":"the act","label":"the bond keeps growing"}},
+  {"d":7,"text":["4 moments that *build real love*"],"ty":480,"v":{"type":"list","items":["Holding each other close","Whispering gratitude","A kiss on the forehead","A warm Ghusl together"]}},
+  {"d":6,"text":["Just like the Prophet","and *Aisha* used to do."],"small":"(peace be upon him) · (may Allah be pleased with her)","smallY":700,"cite":"Bathing together from one vessel — Sahih al-Bukhari","v":{"type":"hadith"}},
+  {"d":5,"text":["This is where an","*unbreakable bond*","is built."],"v":{"type":"merge","bar":"CONNECTION"}},
+  {"d":6,"v":{"type":"cta","guide":"MUSLIM INTIMACY GUIDE"}}]},
+ {"row":"5","keyword":"PDF","seed":5,"scenes":[
+  {"d":5.5,"text":["Why dressing up","*ONLY for weddings*","is ~ruining~ your marriage."],"v":{"type":"outward","label":"all for the guests"}},
+  {"d":5.5,"text":["Best clothes and perfume","for *strangers* at events..."],"v":{"type":"outward"}},
+  {"d":5,"text":["...old oversized t-shirts","for the one who is","*Halal for you.*"],"v":{"type":"dim","label":"your spouse"}},
+  {"d":7,"text":["Ibn Abbas said:"],"ty":620,"small":"(may Allah be pleased with him)","smallY":720,"v":{"type":"quote","lines":["I love to adorn myself","for my wife, just as I love","for her to *adorn herself* for me."],"by":"— Ibn Abbas"}},
+  {"d":6,"text":["Tonight, try this:"],"ty":480,"v":{"type":"list","y0":860,"gap":210,"items":["Put on that scent","Wear something breathtaking","Make the effort for them"]}},
+  {"d":5,"text":["...and watch","*the spark return.*"],"v":{"type":"spark"}},
+  {"d":6,"v":{"type":"cta","guide":"HALAL INTIMACY & SEDUCTION GUIDE"}}]}
+]
